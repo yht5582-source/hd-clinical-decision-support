@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#D97706" />
+  <meta name="description" content="血液透析室醫療處方與每月生化決策引導系統（spKt/V、UFR、CKD-MBD、腎性貧血、高血鉀、透析營養處方與一鍵 SOAP 病程紀錄）" />
+  <title>血液透析室｜醫療處方與生化決策引導系統</title>
+  <style>
+    :root {
+      --bg-main: #FDFBF7;
+      --bg-card: #FFFFFF;
+      --bg-subtle: #F7F4EF;
+      --bg-warm-tint: #FEF3C7;
+      --primary: #D97706;
+      --primary-hover: #B45309;
+      --coral: #E06D53;
+      --coral-bg: #FFF1EE;
+      --sage: #3F7D58;
+      --sage-bg: #ECFDF5;
+      --text-main: #2D2522;
+      --text-muted: #6E625D;
+      --border: #E6DFD5;
+      --shadow: 0 4px 16px rgba(45, 37, 34, 0.06);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      line-height: 1.55;
+      padding-bottom: 48px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #FFF8EB 0%, #F7F4EF 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(8px);
+    }
+    .header-inner {
+      max-width: 1360px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 2px 8px rgba(217, 119, 6, 0.28);
+    }
+    .brand h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .brand p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 10px;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-main);
+      transition: all 0.18s ease;
+    }
+    button:hover { background: var(--bg-subtle); }
+    button.btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    button.btn-primary:hover { background: var(--primary-hover); }
+    button.btn-coral {
+      background: var(--coral);
+      color: #fff;
+      border-color: var(--coral);
+    }
+    button.btn-coral:hover { opacity: 0.92; }
+
+    .container {
+      max-width: 1360px;
+      margin: 22px auto 0;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1.35fr 0.95fr;
+      gap: 22px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--bg-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .tag {
+      font-size: 0.75rem;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-weight: 600;
+      background: var(--bg-subtle);
+      color: var(--text-muted);
+    }
+    .tag-amber { background: #FEF3C7; color: #92400E; }
+    .tag-coral { background: var(--coral-bg); color: #B91C1C; }
+    .tag-sage { background: var(--sage-bg); color: #065F46; }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    @media (max-width: 640px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+    }
+
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .field input, .field select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+    .field input:focus, .field select:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.14);
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+    @media (max-width: 640px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+    .kpi-box {
+      background: var(--bg-subtle);
+      border-radius: 11px;
+      padding: 12px;
+      border: 1px solid var(--border);
+    }
+    .kpi-box.warn { background: var(--coral-bg); border-color: #F8B4A6; }
+    .kpi-box.ok { background: var(--sage-bg); border-color: #A7F3D0; }
+    .kpi-label { font-size: 0.76rem; color: var(--text-muted); font-weight: 600; }
+    .kpi-val { font-size: 1.25rem; font-weight: 800; margin-top: 2px; }
+    .kpi-sub { font-size: 0.74rem; color: var(--text-muted); margin-top: 2px; }
+
+    .advice-list {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .advice-item {
+      padding: 10px 13px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      background: var(--bg-subtle);
+      border-left: 4px solid var(--primary);
+    }
+    .advice-item.alert {
+      background: var(--coral-bg);
+      border-left-color: var(--coral);
+    }
+    .advice-item.good {
+      background: var(--sage-bg);
+      border-left-color: var(--sage);
+    }
+
+    .sticky-panel {
+      position: sticky;
+      top: 86px;
+    }
+    textarea#soapOutput {
+      width: 100%;
+      min-height: 440px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      background: var(--bg-main);
+      color: var(--text-main);
+      padding: 14px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.84rem;
+      line-height: 1.6;
+      resize: vertical;
+    }
+    .privacy-note {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--text-main);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-badge">HD</div>
+        <div>
+          <h1>血液透析室｜醫療處方與每月生化決策引導</h1>
+          <p>純前端零個資運算 • 即時 spKt/V &amp; UFR 模擬 • CKD-MBD / 貧血 / 營養處方與 SOAP 生成</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" onclick="loadSampleCase()">載入異常範例個案</button>
+        <button type="button" onclick="resetForm()">重設預設值</button>
+        <button type="button" class="btn-primary" onclick="copySOAP()">一鍵複製 SOAP</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 左側：參數輸入與臨床決策引導 -->
+    <div>
+      <!-- 1. 透析處方與廓清率模擬 -->
+      <section class="card">
+        <div class="card-title">
+          <span>1. 透析處方與廓清率（spKt/V &amp; UFR）模擬</span>
+          <span class="tag tag-amber">KDIGO / TSN 達標目標：spKt/V ≥ 1.2 | UFR ≤ 10 mL/kg/hr</span>
+        </div>
+        <div class="grid-4">
+          <div class="field">
+            <label>性別</label>
+            <select id="sex" onchange="recalc()">
+              <option value="M">男性 (Male)</option>
+              <option value="F">女性 (Female)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>身高 (cm)</label>
+            <input type="number" id="height" value="168" min="120" max="210" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>乾體重 Dry Weight (kg)</label>
+            <input type="number" id="dryWeight" value="62" step="0.1" min="25" max="180" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>上機前體重 Pre-HD (kg)</label>
+            <input type="number" id="preWeight" value="64.2" step="0.1" min="25" max="190" oninput="recalc()" />
+          </div>
+        </div>
+
+        <div class="grid-4" style="margin-top: 12px;">
+          <div class="field">
+            <label>血液流速 Qb (mL/min)</label>
+            <input type="number" id="qb" value="280" step="10" min="150" max="450" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>透析液流速 Qd (mL/min)</label>
+            <input type="number" id="qd" value="500" step="50" min="300" max="800" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>透析時間 (小時)</label>
+            <input type="number" id="hours" value="4.0" step="0.5" min="2.0" max="6.0" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>人工腎臟 KoA (mL/min)</label>
+            <select id="koa" onchange="recalc()">
+              <option value="750">中低通量 (KoA ~750)</option>
+              <option value="950" selected>標準高通量 (KoA ~950)</option>
+              <option value="1150">高效能高通量 (KoA ~1150)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 12px;">
+          <div class="field">
+            <label>進食與沖管總水量 (mL)</label>
+            <input type="number" id="primeFluid" value="300" step="50" min="0" max="1500" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>每日殘餘尿量 (mL/day)</label>
+            <input type="number" id="urineOut" value="100" step="50" min="0" max="2000" oninput="recalc()" />
+          </div>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-box" id="boxKtv">
+            <div class="kpi-label">預估 spKt/V</div>
+            <div class="kpi-val" id="valKtv">--</div>
+            <div class="kpi-sub" id="subKtv">URR 預估 --%</div>
+          </div>
+          <div class="kpi-box" id="boxIdwg">
+            <div class="kpi-label">IDWG 體重增加</div>
+            <div class="kpi-val" id="valIdwg">--</div>
+            <div class="kpi-sub" id="subIdwg">佔乾體重 --%</div>
+          </div>
+          <div class="kpi-box" id="boxUfr">
+            <div class="kpi-label">超濾率 (UFR)</div>
+            <div class="kpi-val" id="valUfr">--</div>
+            <div class="kpi-sub" id="subUfr">總脫水 -- mL</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">尿素廓清率 K</div>
+            <div class="kpi-val" id="valClearance">--</div>
+            <div class="kpi-sub" id="subV">分布容積 V: -- L</div>
+          </div>
+        </div>
+
+        <div class="advice-list" id="hdAdvice"></div>
+      </section>
+
+      <!-- 2. 每月生化與用藥決策樹 -->
+      <section class="card">
+        <div class="card-title">
+          <span>2. 每月生化異常判讀與用藥決策樹</span>
+          <span class="tag">CKD-MBD • 貧血 • 電解質</span>
+        </div>
+        <div class="grid-4">
+          <div class="field">
+            <label>血白蛋白 Albumin (g/dL)</label>
+            <input type="number" id="alb" value="3.9" step="0.1" min="1.5" max="5.5" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>未矯正血鈣 Ca (mg/dL)</label>
+            <input type="number" id="ca" value="9.1" step="0.1" min="5.0" max="14.0" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>血磷 Phosphate (mg/dL)</label>
+            <input type="number" id="phos" value="4.8" step="0.1" min="1.0" max="12.0" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>iPTH (pg/mL)</label>
+            <input type="number" id="ipth" value="260" step="10" min="10" max="2500" oninput="recalc()" />
+          </div>
+        </div>
+
+        <div class="grid-4" style="margin-top: 12px;">
+          <div class="field">
+            <label>血紅素 Hb (g/dL)</label>
+            <input type="number" id="hb" value="10.6" step="0.1" min="4.0" max="17.0" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>Ferritin (ng/mL)</label>
+            <input type="number" id="ferritin" value="320" step="10" min="5" max="2000" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>TSAT (%)</label>
+            <input type="number" id="tsat" value="26" step="1" min="3" max="90" oninput="recalc()" />
+          </div>
+          <div class="field">
+            <label>透析前血鉀 K (mEq/L)</label>
+            <input type="number" id="potassium" value="4.7" step="0.1" min="2.5" max="8.5" oninput="recalc()" />
+          </div>
+        </div>
+
+        <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="kpi-box" id="boxCorrCa">
+            <div class="kpi-label">白蛋白矯正血鈣</div>
+            <div class="kpi-val" id="valCorrCa">--</div>
+            <div class="kpi-sub">目標 8.4–9.5 mg/dL</div>
+          </div>
+          <div class="kpi-box" id="boxCaxp">
+            <div class="kpi-label">鈣磷乘積 (Ca × P)</div>
+            <div class="kpi-val" id="valCaxp">--</div>
+            <div class="kpi-sub">建議 &lt; 55 mg²/dL²</div>
+          </div>
+          <div class="kpi-box" id="boxIron">
+            <div class="kpi-label">鐵質儲備評估</div>
+            <div class="kpi-val" id="valIron">--</div>
+            <div class="kpi-sub">TSAT ≥ 20% &amp; Ferritin ≥ 200</div>
+          </div>
+        </div>
+
+        <div class="advice-list" id="labAdvice"></div>
+      </section>
+
+      <!-- 3. 透析營養與水分處方 -->
+      <section class="card">
+        <div class="card-title">
+          <span>3. 血液透析營養與水分處方精算</span>
+          <span class="tag tag-sage">維持性 HD 蛋白質目標：1.0–1.2 g/kg/day</span>
+        </div>
+        <div class="advice-list" id="nutrAdvice" style="margin-top: 0;"></div>
+      </section>
+    </div>
+
+    <!-- 右側：即時 SOAP 病歷紀錄面板 -->
+    <aside class="sticky-panel">
+      <div class="card">
+        <div class="card-title">
+          <span>即時結構化 SOAP 病程紀錄</span>
+          <button type="button" class="btn-coral" onclick="copySOAP()">複製貼入 HIS</button>
+        </div>
+        <textarea id="soapOutput" readonly></textarea>
+        <div class="privacy-note">
+          <span>🔒</span>
+          <span>所有試算皆於本機瀏覽器端執行，不傳輸或儲存任何病患資料，符合醫療機構資安規範。</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast">已複製 SOAP 病程紀錄至剪貼簿</div>
+
+  <script>
+    function getNum(id) {
+      const v = parseFloat(document.getElementById(id).value);
+      return isNaN(v) ? 0 : v;
+    }
+
+    function recalc() {
+      const sex = document.getElementById("sex").value;
+      const height = Math.max(120, getNum("height"));
+      const dw = Math.max(25, getNum("dryWeight"));
+      const preW = Math.max(25, getNum("preWeight"));
+      const qb = Math.max(100, getNum("qb"));
+      const qd = Math.max(300, getNum("qd"));
+      const hours = Math.max(1, getNum("hours"));
+      const koa = Math.max(400, getNum("koa"));
+      const prime = Math.max(0, getNum("primeFluid"));
+      const urine = Math.max(0, getNum("urineOut"));
+
+      // 1. Michaels equation for urea clearance K (mL/min)
+      const qBloodEff = qb * 0.92; // whole blood to plasma water correction
+      const ratio = qBloodEff / qd;
+      const z = (koa / qBloodEff) * (1 - ratio);
+      let K = qBloodEff;
+      if (Math.abs(1 - ratio) > 0.001) {
+        const expZ = Math.exp(z);
+        K = qBloodEff * ((expZ - 1) / (expZ - ratio));
+      }
+
+      // Total body water V (L) ~ 0.58 * DW (male), 0.52 * DW (female)
+      const vLiters = dw * (sex === "M" ? 0.58 : 0.52);
+      const tMin = hours * 60;
+      const idwg = Math.max(0, preW - dw);
+      const idwgPct = (idwg / dw) * 100;
+      const totalUfMl = idwg * 1000 + prime;
+      const ufr = totalUfMl / hours / dw;
+
+      // Daugirdas second-generation style spKt/V approximation
+      const rawKtv = (K * tMin) / (vLiters * 1000);
+      const ufFactor = (0.4 * (totalUfMl / 1000)) / vLiters;
+      const spKtv = Math.max(0, rawKtv * 0.92 + ufFactor);
+      const urr = (1 - Math.exp(-spKtv)) * 100;
+
+      // Update KPI cards
+      document.getElementById("valKtv").textContent = spKtv.toFixed(2);
+      document.getElementById("subKtv").textContent = `URR 預估 ${urr.toFixed(1)}%`;
+      const boxKtv = document.getElementById("boxKtv");
+      boxKtv.className = "kpi-box " + (spKtv >= 1.2 ? "ok" : "warn");
+
+      document.getElementById("valIdwg").textContent = `${idwg.toFixed(1)} kg`;
+      document.getElementById("subIdwg").textContent = `佔乾體重 ${idwgPct.toFixed(1)}%`;
+      const boxIdwg = document.getElementById("boxIdwg");
+      boxIdwg.className = "kpi-box " + (idwgPct > 5 ? "warn" : "ok");
+
+      document.getElementById("valUfr").textContent = `${ufr.toFixed(1)}`;
+      document.getElementById("subUfr").textContent = `mL/kg/hr (總脫水 ${Math.round(totalUfMl)} mL)`;
+      const boxUfr = document.getElementById("boxUfr");
+      boxUfr.className = "kpi-box " + (ufr > 10 ? "warn" : "ok");
+
+      document.getElementById("valClearance").textContent = `${Math.round(K)} mL/min`;
+      document.getElementById("subV").textContent = `分布容積 V: ${vLiters.toFixed(1)} L`;
+
+      // HD Prescription Advice
+      const hdNotes = [];
+      if (spKtv < 1.2) {
+        const neededMin = Math.ceil(((1.25 - ufFactor) / 0.92) * (vLiters * 1000) / K);
+        const recHours = (Math.ceil(neededMin / 15) * 0.25).toFixed(2);
+        hdNotes.push({
+          type: "alert",
+          text: `⚠️ 透析劑量不足 (spKt/V = ${spKtv.toFixed(2)} < 1.2)：建議優先評估血管通路再循環，並考慮將血液流速 Qb 調高至 ${Math.min(350, qb + 30)} mL/min、選用高通量人工腎臟 (KoA ≥ 1150)，或將透析時間延長至 ${recHours} 小時。`
+        });
+      } else {
+        hdNotes.push({
+          type: "good",
+          text: `✅ 透析廓清率達標 (spKt/V = ${spKtv.toFixed(2)} ≥ 1.2，URR ${urr.toFixed(1)}%)：維持現行 Qb ${qb} / Qd ${qd} 與 ${hours} 小時處方。`
+        });
+      }
+
+      if (ufr > 13) {
+        hdNotes.push({
+          type: "alert",
+          text: `🚨 超濾率過高 (UFR = ${ufr.toFixed(1)} mL/kg/hr > 13)：極易誘發透析中低血壓 (IDH) 與心肌頓抑！建議啟動階梯式脫水曲線 (UF Profile)、調降透析液溫度至 35.5–36.0°C、減少透析中進食水量，或分次逐步達成乾體重。`
+        });
+      } else if (ufr > 10 || idwgPct > 5) {
+        hdNotes.push({
+          type: "alert",
+          text: `⚠️ 脫水負荷偏高 (IDWG ${idwgPct.toFixed(1)}%，UFR ${ufr.toFixed(1)} mL/kg/hr)：建議密切監測後段血壓，並衛教控制透析間期水分攝取。`
+        });
+      } else {
+        hdNotes.push({
+          type: "good",
+          text: `✅ 脫水速率安全 (UFR ${ufr.toFixed(1)} mL/kg/hr ≤ 10)：心血管耐受度佳，依標準曲線脫水。`
+        });
+      }
+      renderAdvice("hdAdvice", hdNotes);
+
+      // 2. Labs & Decision Tree
+      const alb = getNum("alb");
+      const ca = getNum("ca");
+      const phos = getNum("phos");
+      const ipth = getNum("ipth");
+      const hb = getNum("hb");
+      const ferritin = getNum("ferritin");
+      const tsat = getNum("tsat");
+      const k = getNum("potassium");
+
+      const corrCa = alb < 4.0 ? ca + 0.8 * (4.0 - alb) : ca;
+      const caxp = corrCa * phos;
+
+      document.getElementById("valCorrCa").textContent = `${corrCa.toFixed(2)} mg/dL`;
+      document.getElementById("boxCorrCa").className = "kpi-box " + (corrCa > 9.5 || corrCa < 8.4 ? "warn" : "ok");
+
+      document.getElementById("valCaxp").textContent = `${caxp.toFixed(1)}`;
+      document.getElementById("boxCaxp").className = "kpi-box " + (caxp >= 55 ? "warn" : "ok");
+
+      let ironStatus = "儲備充足";
+      let ironClass = "ok";
+      if (tsat < 20 && ferritin < 200) {
+        ironStatus = "絕對缺鐵";
+        ironClass = "warn";
+      } else if (tsat < 20 || ferritin < 200) {
+        ironStatus = "功能性/邊緣缺鐵";
+        ironClass = "warn";
+      }
+      document.getElementById("valIron").textContent = ironStatus;
+      document.getElementById("boxIron").className = "kpi-box " + ironClass;
+
+      const labNotes = [];
+      // CKD-MBD
+      if (phos > 5.5) {
+        if (corrCa > 9.5 || caxp >= 55) {
+          labNotes.push({
+            type: "alert",
+            text: `🦴 高血磷合併高血鈣/高鈣磷乘積 (P ${phos}, Corr Ca ${corrCa.toFixed(2)}, Ca×P ${caxp.toFixed(1)})：應停用或減量含鈣磷結合劑，優先改用非鈣系磷結合劑 (Sevelamer、Lanthanum 或 Ferric citrate)，並將透析液鈣調降至 2.5 mEq/L；衛教磷結合劑務必「隨餐咬碎」服用。`
+          });
+        } else {
+          labNotes.push({
+            type: "alert",
+            text: `🦴 高血磷 (P ${phos} > 5.5 mg/dL，矯正鈣 ${corrCa.toFixed(2)})：建議調高磷結合劑劑量（血鈣正常偏低時可使用鈣系或非鈣系結合劑），並檢視高磷加工食品與蛋白質食物之磷/蛋白比值。`
+          });
+        }
+      } else if (phos < 3.5) {
+        labNotes.push({
+          type: "alert",
+          text: `⚠️ 低血磷 (P ${phos} < 3.5 mg/dL)：警覺蛋白質熱量耗損 (PEW) 或進食不足，建議減量或暫停磷結合劑並加強高生物價蛋白質攝取。`
+        });
+      } else {
+        labNotes.push({
+          type: "good",
+          text: `✅ 血磷控制達標 (P ${phos} mg/dL，Ca×P ${caxp.toFixed(1)})：維持現行磷結合劑與飲食衛教。`
+        });
+      }
+
+      if (ipth > 600) {
+        const rx = corrCa > 9.5
+          ? "血鈣偏高，首選擬鈣劑 (Calcimimetics，如 Cinacalcet / Etelcalcetide) 抑制 PTH。"
+          : "血鈣未過高，可啟動或調升活性維生素 D (Calcitriol / Paricalcitol) 或合併擬鈣劑。";
+        labNotes.push({
+          type: "alert",
+          text: `🦴 次發性副甲狀腺機能亢進 (iPTH ${ipth} pg/mL > 600)：${rx}`
+        });
+      } else if (ipth < 150) {
+        labNotes.push({
+          type: "alert",
+          text: `🦴 低週轉性骨病變風險 (iPTH ${ipth} pg/mL < 150)：建議減量或暫停活性維生素 D 與含鈣結合劑，避免血管鈣化。`
+        });
+      }
+
+      // Anemia
+      if (hb < 10.0) {
+        if (tsat < 30 && ferritin < 500) {
+          labNotes.push({
+            type: "alert",
+            text: `🩸 腎性貧血合併鐵質不足 (Hb ${hb} g/dL, TSAT ${tsat}%, Ferritin ${ferritin})：建議優先給予靜脈鐵劑補充 (IV Iron 100 mg/week × 8–10 週)，並將 ESA 劑量調升 25%。`
+          });
+        } else {
+          labNotes.push({
+            type: "alert",
+            text: `🩸 腎性貧血 (Hb ${hb} g/dL < 10.0，鐵儲備尚足)：建議調升 ESA 劑量 25%，並排查潛在出血、感染發炎 (CRP) 或透析不足。`
+          });
+        }
+      } else if (hb > 11.5) {
+        labNotes.push({
+          type: "alert",
+          text: `🩸 血紅素偏高 (Hb ${hb} g/dL > 11.5)：為降低血栓與心血管風險，建議將 ESA 劑量調降 25% 或暫停給藥並追蹤。`
+        });
+      } else {
+        labNotes.push({
+          type: "good",
+          text: `✅ 血紅素控制理想 (Hb ${hb} g/dL，目標 10.0–11.5 g/dL)：維持現行 ESA 與鐵劑維持劑量。`
+        });
+      }
+
+      // Potassium
+      if (k >= 5.5) {
+        labNotes.push({
+          type: "alert",
+          text: `⚡ 高血鉀警示 (K ${k} mEq/L ≥ 5.5)：立即檢視心電圖與 RAASi 藥物，考慮調降透析液鉀濃度至 2.0 mEq/L（心律不整高風險者慎用 1.0 K），必要時開立新型排鉀劑 (ZS-9 / Patiromer) 並加強低鉀飲食衛教（避免生菜、高湯、低鈉鹽）。`
+        });
+      } else if (k < 3.5) {
+        labNotes.push({
+          type: "alert",
+          text: `⚡ 低血鉀警示 (K ${k} mEq/L < 3.5)：評估營養不良或腹瀉流失，建議使用 3.0 mEq/L 鉀濃度透析液並適度放寬飲食攝鉀。`
+        });
+      }
+      renderAdvice("labAdvice", labNotes);
+
+      // 3. Nutrition & Fluid Calculation
+      const ibw = sex === "M" ? (height - 80) * 0.7 : (height - 70) * 0.6;
+      const refWeight = Math.abs(dw - ibw) / ibw > 0.2 ? ibw : dw;
+      const kcalMin = Math.round(refWeight * 30);
+      const kcalMax = Math.round(refWeight * 35);
+      const proMin = (refWeight * 1.0).toFixed(1);
+      const proMax = (refWeight * 1.2).toFixed(1);
+      const fluidLimit = Math.round(urine + 750);
+
+      const nutrNotes = [
+        {
+          type: "good",
+          text: `🍽️ 每日營養目標（參考體重 ${refWeight.toFixed(1)} kg）：熱量 ${kcalMin}–${kcalMax} kcal/day（30–35 kcal/kg）；蛋白質 ${proMin}–${proMax} g/day（1.0–1.2 g/kg，至少 50% 為高生物價蛋白質）。`
+        },
+        {
+          type: "good",
+          text: `💧 每日水分上限建議：約 ${fluidLimit} mL/day（殘餘尿量 ${urine} mL + 750 mL），控制兩次透析間體重增加不超過 ${(dw * 0.05).toFixed(1)} kg（乾體重 5%）。`
+        }
+      ];
+
+      if (alb < 3.8) {
+        nutrNotes.unshift({
+          type: "alert",
+          text: `⚠️ 蛋白質能量耗損 (PEW) 風險警示 (Albumin ${alb} g/dL < 3.8)：建議營養師介入，優先選用「高蛋白、低磷/蛋白質比值、低鉀」之透析專用口服營養補充品 (ONS) 每日 1–2 罐補充。`
+        });
+      }
+      renderAdvice("nutrAdvice", nutrNotes);
+
+      // Generate SOAP Note
+      generateSOAP({
+        sex, height, dw, preW, idwg, idwgPct, qb, qd, hours, K, vLiters, spKtv, urr, ufr, totalUfMl,
+        alb, ca, corrCa, phos, caxp, ipth, hb, ferritin, tsat, k,
+        kcalMin, kcalMax, proMin, proMax, fluidLimit, hdNotes, labNotes, nutrNotes
+      });
+    }
+
+    function renderAdvice(containerId, items) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = items.map(item =>
+        `<div class="advice-item ${item.type === "alert" ? "alert" : "good"}">${item.text}</div>`
+      ).join("");
+    }
+
+    function generateSOAP(d) {
+      const actionLines = [...d.hdNotes, ...d.labNotes, ...d.nutrNotes]
+        .map(n => `- ${n.text.replace(/^[^一-龥A-Za-z0-9]+/, "")}`)
+        .join("
+");
+
+      const soap = `[S] Subjective:
+- Regular maintenance hemodialysis (HD) patient; routine monthly lab & dialysis adequacy review.
+
+[O] Objective:
+- Anthropometrics & Fluid: Dry Weight ${d.dw} kg, Pre-HD Wt ${d.preW} kg (IDWG ${d.idwg.toFixed(1)} kg / ${d.idwgPct.toFixed(1)}%), Total UF ${Math.round(d.totalUfMl)} mL, UFR ${d.ufr.toFixed(1)} mL/kg/hr.
+- Dialysis Settings & Kinetics: Qb ${d.qb} mL/min, Qd ${d.qd} mL/min, Time ${d.hours} hr, Est. K ${Math.round(d.K)} mL/min, V ${d.vLiters.toFixed(1)} L -> Est. spKt/V ${d.spKtv.toFixed(2)} (URR ${d.urr.toFixed(1)}%).
+- Monthly Labs: Alb ${d.alb} g/dL, Ca ${d.ca} mg/dL (Corr. Ca ${d.corrCa.toFixed(2)} mg/dL), P ${d.phos} mg/dL (Ca×P ${d.caxp.toFixed(1)}), iPTH ${d.ipth} pg/mL, Hb ${d.hb} g/dL, Ferritin ${d.ferritin} ng/mL, TSAT ${d.tsat}%, Pre-HD K ${d.k} mEq/L.
+
+[A] Assessment:
+1. ESRD on maintenance HD: Dialysis adequacy ${d.spKtv >= 1.2 ? "adequate" : "suboptimal (spKt/V < 1.2)"}; UFR ${d.ufr > 10 ? "elevated (> 10 mL/kg/hr)" : "within safe range"}.
+2. CKD-MBD & Electrolytes: Corr. Ca ${d.corrCa.toFixed(2)} mg/dL, P ${d.phos} mg/dL, iPTH ${d.ipth} pg/mL, K ${d.k} mEq/L.
+3. Renal Anemia: Hb ${d.hb} g/dL (Ferritin ${d.ferritin}, TSAT ${d.tsat}%).
+4. Nutrition Status: Albumin ${d.alb} g/dL ${d.alb < 3.8 ? "(PEW risk)" : "(stable)"}.
+
+[P] Plan & Clinical Guidance:
+${actionLines}
+- Follow-up: Monitor intradialytic hemodynamics, reinforce dietary & medication adherence, and recheck monthly labs as scheduled.`;
+
+      document.getElementById("soapOutput").value = soap;
+    }
+
+    function loadSampleCase() {
+      document.getElementById("sex").value = "F";
+      document.getElementById("height").value = "156";
+      document.getElementById("dryWeight").value = "52.0";
+      document.getElementById("preWeight").value = "55.2";
+      document.getElementById("qb").value = "230";
+      document.getElementById("qd").value = "500";
+      document.getElementById("hours").value = "3.5";
+      document.getElementById("koa").value = "750";
+      document.getElementById("primeFluid").value = "400";
+      document.getElementById("urineOut").value = "0";
+      document.getElementById("alb").value = "3.4";
+      document.getElementById("ca").value = "9.4";
+      document.getElementById("phos").value = "6.4";
+      document.getElementById("ipth").value = "780";
+      document.getElementById("hb").value = "9.1";
+      document.getElementById("ferritin").value = "140";
+      document.getElementById("tsat").value = "16";
+      document.getElementById("potassium").value = "5.8";
+      recalc();
+    }
+
+    function resetForm() {
+      document.getElementById("sex").value = "M";
+      document.getElementById("height").value = "168";
+      document.getElementById("dryWeight").value = "62";
+      document.getElementById("preWeight").value = "64.2";
+      document.getElementById("qb").value = "280";
+      document.getElementById("qd").value = "500";
+      document.getElementById("hours").value = "4.0";
+      document.getElementById("koa").value = "950";
+      document.getElementById("primeFluid").value = "300";
+      document.getElementById("urineOut").value = "100";
+      document.getElementById("alb").value = "3.9";
+      document.getElementById("ca").value = "9.1";
+      document.getElementById("phos").value = "4.8";
+      document.getElementById("ipth").value = "260";
+      document.getElementById("hb").value = "10.6";
+      document.getElementById("ferritin").value = "320";
+      document.getElementById("tsat").value = "26";
+      document.getElementById("potassium").value = "4.7";
+      recalc();
+    }
+
+    function copySOAP() {
+      const textarea = document.getElementById("soapOutput");
+      textarea.select();
+      textarea.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(textarea.value);
+      const toast = document.getElementById("toast");
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    window.addEventListener("DOMContentLoaded", recalc);
+  </script>
+</body>
+</html>
